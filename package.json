@@ -4,22 +4,21 @@
 	"contributors": [
 		"Mac Angell <mac.ang311@gmail.com>"
 	],
-	"version": "6.0.0",
+	"version": "9.0.0",
 	"dependencies": {
-		"statsd-client": "^0.2.4",
-		"hoek": "^4.1.0"
+		"@hapi/hoek": "^11.0.2",
+		"hot-shots": "^10.0.0"
 	},
 	"devDependencies": {
-		"mocha": "^1.21.5",
+		"@hapi/hapi": "^21.3.2",
+		"coveralls": "^3.0.0",
 		"jshint": "^2.9.4",
-		"travis-cov": "0.x.x",
-		"blanket": "^1.2.3",
-		"hapi": "^16.0.0",
-		"coveralls": "^2.11.15",
-		"mocha-lcov-reporter": "^0.0.2"
+		"mocha": "^9.0.2",
+		"nyc": "^15.1.0",
+		"travis-cov": "^0.2.5"
 	},
 	"peerDependencies": {
-		"hapi": "^16.0.0"
+		"@hapi/hapi": "^21.3.2"
 	},
 	"keywords": [
 		"hapi",
@@ -33,7 +32,7 @@
 		"round trip"
 	],
 	"engines": {
-		"node": ">=4.0.0"
+		"node": ">=12.0.0"
 	},
 	"main": "./lib/hapi-statsd.js",
 	"repository": {
@@ -41,16 +40,9 @@
 		"url": "git@github.com:mac-/hapi-statsd.git"
 	},
 	"scripts": {
-		"test": "make test && make test-cov && make test-lcov | ./node_modules/coveralls/bin/coveralls.js"
+		"test": "nyc --reporter=text mocha test/integration"
 	},
 	"config": {
-		"blanket": {
-			"pattern": "//^((?!/node_modules/)(?!/test/).)*$/ig",
-			"onlyCwd": true,
-			"data-cover-flags": {
-				"branchTracking": true
-			}
-		},
 		"travis-cov": {
 			"threshold": -1
 		}

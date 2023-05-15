@@ -15,29 +15,28 @@ var assert = require('assert'),
 			this.timingDate = date;
 		}
 	},
-	Hapi = require('hapi');
+	Hapi = require('@hapi/hapi');
 
-beforeEach(function(done) {
+beforeEach(async function() {
 	mockStatsdClient.incStat = '';
 	mockStatsdClient.timingStat = '';
 	mockStatsdClient.timingDate = '';
-	server = new Hapi.Server();
-
-	server.connection({
+	server = new Hapi.Server({
 		host: 'localhost',
 		port: 8085
 	});
 
-	var get = function (request, reply) {
-		reply('Success!');
+
+	var get = function (request, h) {
+		return 'Success!';
 	};
 
-	var err = function (request, reply) {
-		reply(new Error());
+	var err = function (request, h) {
+		return new Error();
 	};
 
-	var err407 = function (request, reply) {
-		reply('error').statusCode = 407;
+	var err407 = function (request, h) {
+		return h.response('error').code(407);
 	};
 
 	server.route({ method: ['GET','OPTIONS'], path: '/', handler: get, config: {cors: true} });
@@ -50,26 +49,30 @@ beforeEach(function(done) {
 	server.route({ method: 'POST', path: '/match/method', handler: get, config: { cors: true} });
 	server.route({ method: 'GET', path: '/match/status', handler: err407, config: { cors: true} });
 
-	server.register({
-		register: plugin,
-		options: {
-			statsdClient: mockStatsdClient,
-			defaultFilter: {
-				enableCounter: false,
-				enableTimer: true,
-			},
-			filters: [
-				{ path: '/', enableCounter: true },
-				{ path: '/err', enableCounter: true },
-				{ path: '/test/{param}', enableCounter: true },
-				{ path: '/override', enableCounter: true, enableTimer: false },
-				{ path: '/rename', name: 'rename_stat', enableCounter: true, enableTimer: true },
-				{ id: 'match-my-id', name: 'match_id_stat', enableCounter: true, enableTimer: true },
-				{ method: 'POST', name: 'match_on_post', enableCounter: true, enableTimer: true },
-				{ status: 407, name: 'match_on_status', enableCounter: true, enableTimer: true },
-			],
-		},
-	}, done);
+	try {
+		return await server.register({
+			plugin: plugin,
+			options: {
+				statsdClient: mockStatsdClient,
+				defaultFilter: {
+					enableCounter: false,
+					enableTimer: true,
+				},
+				filters: [
+					{ path: '/', enableCounter: true },
+					{ path: '/err', enableCounter: true },
+					{ path: '/test/{param}', enableCounter: true },
+					{ path: '/override', enableCounter: true, enableTimer: false },
+					{ path: '/rename', name: 'rename_stat', enableCounter: true, enableTimer: true },
+					{ id: 'match-my-id', name: 'match_id_stat', enableCounter: true, enableTimer: true },
+					{ method: 'POST', name: 'match_on_post', enableCounter: true, enableTimer: true },
+					{ status: 407, name: 'match_on_status', enableCounter: true, enableTimer: true },
+				],
+			}
+		});
+	} catch (error){
+		return error
+	}
 });
 
 describe('hapi-statsd plugin tests', function() {
@@ -78,111 +81,86 @@ describe('hapi-statsd plugin tests', function() {
 		assert.equal(server.statsd, mockStatsdClient);
 	});
 
-	it('should report stats with no path in stat name', function(done) {
-		server.inject('/', function(res) {
-			assert(mockStatsdClient.incStat == 'GET.200');
-			assert(mockStatsdClient.timingStat == 'GET.200');
-			assert(mockStatsdClient.timingDate instanceof Date);
-			done();
-		});
+	it('should honor default filter', async function() {
+		await server.inject('/default')
+		assert(mockStatsdClient.incStat == '');
+		assert(mockStatsdClient.timingStat == 'default.GET.200');
+		assert(mockStatsdClient.timingDate instanceof Date);
 	});
 
-	it('should honor default filter', function(done) {
-		server.inject('/default', function(res) {
-			assert(mockStatsdClient.incStat == '');
-			assert(mockStatsdClient.timingStat == 'default.GET.200');
-			assert(mockStatsdClient.timingDate instanceof Date);
-			done();
-		});
+	it('should honor filter override', async function() {
+		await server.inject('/override' );
+		assert(mockStatsdClient.incStat == 'override.GET.200');
+		assert(mockStatsdClient.timingStat == '');
 	});
 
-	it('should honor filter override', function(done) {
-		server.inject('/override', function(res) {
-			assert(mockStatsdClient.incStat == 'override.GET.200');
-			assert(mockStatsdClient.timingStat == '');
-			done();
-		});
+	it('should use cached value', async function() {
+		await server.inject('/override');
+		await server.inject('/override');
+		assert(mockStatsdClient.incStat == 'override.GET.200');
+		assert(mockStatsdClient.timingStat == '');
 	});
 
-	it('should use cached value', function(done) {
-		server.inject('/override', function() {
-			server.inject('/override', function() {
-				assert(mockStatsdClient.incStat == 'override.GET.200');
-				assert(mockStatsdClient.timingStat == '');
-				done();
-			});
-		});
+	it('should rename stat', async function() {
+		await server.inject('/rename');
+		assert(mockStatsdClient.incStat == 'rename_stat');
+		assert(mockStatsdClient.timingStat == 'rename_stat');
 	});
 
-	it('should rename stat', function(done) {
-		server.inject('/rename', function(res) {
-			assert(mockStatsdClient.incStat == 'rename_stat');
-			assert(mockStatsdClient.timingStat == 'rename_stat');
-			done();
-		});
+	it('should match on route id', async function() {
+		await server.inject('/match/id');
+		assert(mockStatsdClient.incStat == 'match_id_stat');
+		assert(mockStatsdClient.timingStat == 'match_id_stat');
 	});
 
-	it('should match on route id', function(done) {
-		server.inject('/match/id', function(res) {
-			assert(mockStatsdClient.incStat == 'match_id_stat');
-			assert(mockStatsdClient.timingStat == 'match_id_stat');
-			done();
-		});
+	it('should match on request method', async function() {
+		await server.inject({method: 'POST', url: '/match/method'} );
+		assert(mockStatsdClient.incStat == 'match_on_post');
+		assert(mockStatsdClient.timingStat == 'match_on_post');
 	});
 
-	it('should match on request method', function(done) {
-		server.inject({method: 'POST', url: '/match/method'}, function(res) {
-			assert(mockStatsdClient.incStat == 'match_on_post');
-			assert(mockStatsdClient.timingStat == 'match_on_post');
-			done();
-		});
+	it('should match on status code', async function() {
+		await server.inject('/match/status');
+		assert(mockStatsdClient.incStat == 'match_on_status');
+		assert(mockStatsdClient.timingStat == 'match_on_status');
 	});
 
-	it('should match on status code', function(done) {
-		server.inject('/match/status', function(res) {
-			assert(mockStatsdClient.incStat == 'match_on_status');
-			assert(mockStatsdClient.timingStat == 'match_on_status');
-			done();
-		});
+	it('should report stats with no path in stat name', async function() {
+		await server.inject('/');
+		assert(mockStatsdClient.incStat == 'GET.200');
+		assert(mockStatsdClient.timingStat == 'GET.200');
+		assert(mockStatsdClient.timingDate instanceof Date);		
 	});
 
-	it('should report stats with path in stat name', function(done) {
-		server.inject('/test/123', function(res) {
-			assert(mockStatsdClient.incStat == 'test_{param}.GET.200');
-			assert(mockStatsdClient.timingStat == 'test_{param}.GET.200');
-			assert(mockStatsdClient.timingDate instanceof Date);
-			done();
-		});
+	it('should report stats with path in stat name', async function() {
+		await server.inject('/test/123');
+		assert(mockStatsdClient.incStat == 'test_{param}.GET.200');
+		assert(mockStatsdClient.timingStat == 'test_{param}.GET.200');
+		assert(mockStatsdClient.timingDate instanceof Date);
 	});
 
-	it('should report stats with generic not found path', function(done) {
-		server.inject('/fnord', function(res) {
-			assert(mockStatsdClient.incStat == '');
-			assert(mockStatsdClient.timingStat == '{notFound*}.GET.404');
-			assert(mockStatsdClient.timingDate instanceof Date);
-			done();
-		});
+	it('should report stats with generic not found path', async function() {
+		await server.inject('/fnord')
+		assert(mockStatsdClient.incStat == '');
+		assert(mockStatsdClient.timingStat == '{notFound*}.GET.404');
+		assert(mockStatsdClient.timingDate instanceof Date);
 	});
 
-	it('should report stats with generic CORS path', function(done) {
-		server.inject({
+	it('should report stats with generic CORS path', async function() {
+		await server.inject({
 			method: 'OPTIONS',
 			headers: {
 				Origin: 'http://test.domain.com'
 			},
 			url: '/'
-		}, function(res) {
-			assert(mockStatsdClient.incStat == '{cors*}.OPTIONS.200');
-			assert(mockStatsdClient.timingStat == '{cors*}.OPTIONS.200');
-			assert(mockStatsdClient.timingDate instanceof Date);
-			done();
-		});
+		})
+		assert(mockStatsdClient.incStat == '{cors*}.OPTIONS.200');
+		assert(mockStatsdClient.timingStat == '{cors*}.OPTIONS.200');
+		assert(mockStatsdClient.timingDate instanceof Date);
 	});
 
-	it('should not change the status code of a response', function(done) {
-		server.inject('/err', function(res) {
-			assert(res.statusCode === 500);
-			done();
-		});
+	it('should not change the status code of a response', async function() {
+		var res = await server.inject('/err')
+		assert(res.statusCode === 500);
 	});
 });
