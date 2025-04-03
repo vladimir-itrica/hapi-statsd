@@ -1,5 +1,5 @@
 {
-	"name": "@itrica/hapi-statsd",
+	"name": "@vladimir.itrica/hapi-statsd",
 	"description": "A hapi plugin for sending request round trip metrics to statsd",
 	"contributors": [
 		"Mac Angell <mac.ang311@gmail.com>"
