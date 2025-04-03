@@ -37,7 +37,7 @@
 	"main": "./lib/hapi-statsd.js",
 	"repository": {
 		"type": "git",
-		"url": "git@github.com:mac-/hapi-statsd.git"
+		"url": "git@github.com:vladimir-itrica/hapi-statsd.git"
 	},
 	"scripts": {
 		"test": "nyc --reporter=text mocha test/integration"
