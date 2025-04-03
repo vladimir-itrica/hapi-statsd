@@ -4,21 +4,21 @@
 	"contributors": [
 		"Mac Angell <mac.ang311@gmail.com>"
 	],
-	"version": "9.0.0",
+	"version": "9.1.0",
 	"dependencies": {
-		"@hapi/hoek": "^11.0.2",
-		"hot-shots": "^10.0.0"
+		"@hapi/hoek": "^11.0.7",
+		"hot-shots": "^10.2.1"
 	},
 	"devDependencies": {
-		"@hapi/hapi": "^21.3.2",
-		"coveralls": "^3.0.0",
-		"jshint": "^2.9.4",
-		"mocha": "^9.0.2",
-		"nyc": "^15.1.0",
+		"@hapi/hapi": "^21.4.0",
+		"coveralls": "^3.1.1",
+		"jshint": "^2.13.6",
+		"mocha": "^11.1.0",
+		"nyc": "^17.1.0",
 		"travis-cov": "^0.2.5"
 	},
 	"peerDependencies": {
-		"@hapi/hapi": "^21.3.2"
+		"@hapi/hapi": "^21.4.0"
 	},
 	"keywords": [
 		"hapi",
@@ -32,7 +32,7 @@
 		"round trip"
 	],
 	"engines": {
-		"node": ">=12.0.0"
+		"node": ">=18.0.0"
 	},
 	"main": "./lib/hapi-statsd.js",
 	"repository": {
