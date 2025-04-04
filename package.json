@@ -2,9 +2,16 @@
 	"name": "@vladimir.itrica/hapi-statsd",
 	"description": "A hapi plugin for sending request round trip metrics to statsd",
 	"contributors": [
-		"Mac Angell <mac.ang311@gmail.com>"
+		{
+			"name": "Mac Angell",
+			"email": "mac.ang311@gmail.com"
+		},
+		{
+			"name": "Harris Wong",
+			"url": "https://harriswong.ca/"
+		}
 	],
-	"version": "9.1.0",
+	"version": "9.1.1",
 	"dependencies": {
 		"@hapi/hoek": "^11.0.7",
 		"hot-shots": "^10.2.1"
@@ -47,5 +54,8 @@
 			"threshold": -1
 		}
 	},
-	"license": "MIT"
+	"license": "MIT",
+	"files": [
+		"/lib"
+	]
 }
